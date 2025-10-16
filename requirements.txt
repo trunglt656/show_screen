@@ -1,0 +1,13 @@
+# Multi-Device Android Screen Display Requirements
+
+# Các package Python cần thiết
+tkinter  # Giao diện GUI (có sẵn trong Python chuẩn)
+
+# Các công cụ bên ngoài cần thiết (cần cài đặt thủ công):
+# - Android SDK Platform Tools (adb): https://developer.android.com/studio/releases/platform-tools
+# - Scrcpy: https://github.com/Genymobile/scrcpy
+
+# Hướng dẫn cài đặt:
+# 1. Cài đặt Android SDK Platform Tools để có adb
+# 2. Cài đặt Scrcpy từ GitHub hoặc package manager
+# 3. Đảm bảo adb và scrcpy có trong PATH hệ thống

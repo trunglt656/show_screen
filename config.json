@@ -1,0 +1,22 @@
+{
+  "window": {
+    "width": 800,
+    "height": 600,
+    "title": "Multi-Device Android Screen Display"
+  },
+  "scrcpy": {
+    "max_size": 1024,
+    "bit_rate": 8000000,
+    "max_fps": 30,
+    "window_borderless": false,
+    "always_on_top": false
+  },
+  "auto_refresh": {
+    "enabled": true,
+    "interval_seconds": 5
+  },
+  "logging": {
+    "enabled": true,
+    "level": "INFO"
+  }
+}
