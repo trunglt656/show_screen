@@ -45,10 +45,10 @@ class MultiScrcpyManager:
                                      command=self.refresh_devices)
         self.refresh_btn.grid(row=1, column=0, pady=10)
 
-        # Nút hiển thị tất cả màn hình
-        self.display_all_btn = ttk.Button(main_frame, text="Hiển Thị Tất Cả Màn Hình",
-                                         command=self.display_all_screens)
-        self.display_all_btn.grid(row=1, column=1, pady=10)
+        # Nút dừng tất cả màn hình
+        self.stop_all_btn = ttk.Button(main_frame, text="Dừng Tất Cả Màn Hình",
+                                     command=self.stop_all_displays)
+        self.stop_all_btn.grid(row=1, column=2, pady=10)
 
         # Danh sách thiết bị
         self.devices_frame = ttk.LabelFrame(main_frame, text="Thiết Bị Đã Kết Nối", padding="10")
@@ -123,6 +123,21 @@ class MultiScrcpyManager:
         except (subprocess.CalledProcessError, FileNotFoundError):
             return False
 
+    def is_device_ready(self, device_id):
+        """Kiểm tra xem thiết bị có sẵn sàng không"""
+        try:
+            # Kiểm tra thiết bị có trong danh sách adb không
+            result = subprocess.run(['adb', 'devices'], capture_output=True, text=True, check=True, timeout=5)
+            devices = [line.split('\t')[0] for line in result.stdout.strip().split('\n')[1:] if line.strip() and not line.strip().startswith('*') and line.split('\t')[0] == device_id]
+            if not devices:
+                return False
+
+            # Kiểm tra kết nối cơ bản
+            subprocess.run(['adb', '-s', device_id, 'shell', 'echo', 'test'], capture_output=True, check=True, timeout=5)
+            return True
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            return False
+
     def refresh_devices(self):
         """Làm mới danh sách thiết bị"""
         self.log_message("Đang tìm thiết bị...")
@@ -194,13 +209,30 @@ class MultiScrcpyManager:
             messagebox.showwarning("Cảnh Báo", "Không có thiết bị nào được kết nối")
             return
 
-        for device_id in self.devices:
+        # Giới hạn số thiết bị để tránh overload (có thể cấu hình từ config)
+        max_devices = getattr(self, 'max_concurrent_devices', 5)
+        if len(self.devices) > max_devices:
+            messagebox.showwarning("Cảnh Báo", f"Quá nhiều thiết bị ({len(self.devices)}). Chỉ hiển thị tối đa {max_devices} thiết bị đầu tiên.")
+            devices_to_display = self.devices[:max_devices]
+        else:
+            devices_to_display = self.devices
+
+        for i, device_id in enumerate(devices_to_display):
+            # Thêm delay nhỏ giữa các lần khởi chạy để tránh xung đột
+            if i > 0:
+                time.sleep(2)  # Delay 2 giây giữa mỗi thiết bị
             self.display_single_screen(device_id)
 
     def display_single_screen(self, device_id):
         """Hiển thị màn hình của một thiết bị"""
         if device_id in self.processes:
             messagebox.showinfo("Thông Báo", f"Màn hình của thiết bị {device_id} đang được hiển thị")
+            return
+
+        # Kiểm tra trạng thái thiết bị trước khi khởi chạy
+        if not self.is_device_ready(device_id):
+            self.log_message(f"Thiết bị {device_id} không sẵn sàng để hiển thị màn hình")
+            messagebox.showerror("Lỗi", f"Thiết bị {device_id} không sẵn sàng. Vui lòng kiểm tra kết nối USB.")
             return
 
         try:
@@ -240,6 +272,16 @@ class MultiScrcpyManager:
         except Exception as e:
             self.log_message(f"Lỗi khi dừng hiển thị thiết bị {device_id}: {e}")
 
+    def stop_all_displays(self):
+        """Dừng hiển thị tất cả màn hình"""
+        if not self.processes:
+            messagebox.showinfo("Thông Báo", "Không có màn hình nào đang được hiển thị")
+            return
+
+        for device_id in list(self.processes.keys()):
+            self.stop_display(device_id)
+        self.log_message("Đã dừng tất cả màn hình")
+
     def monitor_process(self, device_id, process):
         """Theo dõi tiến trình scrcpy"""
         try:
@@ -252,6 +294,8 @@ class MultiScrcpyManager:
                 self.log_message(f"Tiến trình scrcpy cho thiết bị {device_id} kết thúc bình thường")
             else:
                 self.log_message(f"Tiến trình scrcpy cho thiết bị {device_id} kết thúc với mã lỗi {process.returncode}")
+                if stderr:
+                    self.log_message(f"Lỗi stderr từ thiết bị {device_id}: {stderr[:200]}...")  # Log một phần để tránh quá dài
 
         except Exception as e:
             self.log_message(f"Lỗi khi theo dõi tiến trình thiết bị {device_id}: {e}")

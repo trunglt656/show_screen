@@ -1,6 +1,7 @@
 @echo off
 REM Script chạy Multi-Device Android Screen Display trên Windows
 
+
 echo === Multi-Device Android Screen Display ===
 echo Dang kiem tra dependencies...
 
@@ -36,7 +37,5 @@ echo ✅ Tat ca dependencies da san sang!
 echo Dang khoi chay chuong trinh...
 echo.
 
-REM Chạy chương trình
-python main.py
-
-pause
+REM Chạy chương trình ở chế độ ẩn
+powershell -WindowStyle Hidden -Command "python main.py"
